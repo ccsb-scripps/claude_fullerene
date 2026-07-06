@@ -1,0 +1,13 @@
+# cage_7 -- fullerene fit
+source_mesh:  cage_7.ply  (near-spherical, aspect ~0.955/0.845; 532 verts, auto Loop-subdivided to 8482)
+fullerene:    C498  =  12 pentagons + 239 hexagons  (defect-free, isolated-pentagon rule satisfied)
+point_group:  C1
+fit_mean:     3.5 %      Hausdorff95: 6.9 %
+pent_err:     ~1.22 hexamer-diameters (loose -- a near-sphere barely localizes its disclinations)
+bond_CV:      0.02 %
+note:         near-spherical target is scar-prone (Bausch-Bowick); a defect-free (true) fullerene
+              tiling is rare here -- found after ~169 multistart draws.
+
+# Ring Spiral Pentagon Indices (RSPI), 1-indexed, from Fullerene v4.5
+# (positions of the 12 pentagons along the canonical ring-spiral winding)
+RSPI: 1 45 49 86 104 136 154 169 175 203 211 234

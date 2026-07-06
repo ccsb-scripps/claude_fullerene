@@ -1,0 +1,11 @@
+# cage_6 -- fullerene fit
+source_mesh:  cage_6.ply  (near-spherical, aspect ~0.90/0.82; 511 verts, auto Loop-subdivided to 8482)
+fullerene:    C474  =  12 pentagons + 227 hexagons  (defect-free, isolated-pentagon rule satisfied)
+point_group:  C1
+fit_mean:     3.3 %      Hausdorff95: 6.7 %
+pent_err:     0.61 hexamer-diameters (bowl-marker match)
+bond_CV:      0.01 %
+
+# Ring Spiral Pentagon Indices (RSPI), 1-indexed, from Fullerene v4.5
+# (positions of the 12 pentagons along the canonical ring-spiral winding)
+RSPI: 1 11 43 94 108 128 151 159 167 196 211 220
