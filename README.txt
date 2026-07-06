@@ -50,9 +50,14 @@ APPROACH (why it works)
 
 ALGORITHM & SOURCES
 -------------------
-Stage 0  Mesh prep (prep_mesh.py)
-    Binary-STL read + vertex welding -> indexed closed manifold. Verified via
-    Euler characteristic V-E+F = 2 and zero non-manifold edges.
+Stage 0  Mesh prep (prep_mesh.py [+ subdivide_mesh.py])
+    Read binary STL (per-triangle soup -> welded index) or binary PLY (already
+    indexed). Verified via Euler characteristic V-E+F = 2 and zero non-manifold
+    edges. COARSE inputs (< ~1000 verts) are auto-Loop-subdivided to >= ~4000
+    verts: on a coarse mesh each vertex carries a big lump of curvature, so the
+    pi/3 charge partition overshoots (imprecise bowl markers) and the surface is
+    faceted; Loop subdivision (subdivide_mesh.py) refines + smooths toward the
+    limit surface, fixing both. Fine meshes are left untouched.
 
 Stage 1a Per-vertex curvature (principal_curvature.py)
     Discrete Gaussian curvature K = angle deficit / mixed area; mean curvature H
@@ -174,6 +179,18 @@ Over a 10-instance ensemble through the finalised pipeline:
                    defect-free); the rest carry a 5-7 scar pair and are rejected
                    on defects>0.
 
+Shape-dependent difficulty (observed across meshes): pentamer-placement precision
+and defect-free yield both scale with how strongly the shape LOCALIZES curvature.
+Cones/spindles with sharp tips (mesh4a, mesh5) pin the disclinations tightly
+(pent_err ~0.4-0.6) and tile defect-free easily (~85%). Near-SPHERICAL targets
+(cage_7, aspect ~0.96/0.85) are the hard case: curvature is nearly uniform so
+disclinations barely localize (pent_err ~1.2) AND the field-aligned tiling tends
+to nucleate 5-7 grain-boundary scars (Bausch-Bowick regime), making a clean
+12-disclination (true) fullerene tiling rare -- it may take many multistart draws
+to find one, and the search escalates automatically (full_search.py, cap via argv).
+The gross-shape fit stays good (~3.4%) regardless; it is the strict pentagon-only
+TOPOLOGY that is hard on a sphere.
+
 Structural ceiling: a regular pentagon+hexagon-only fullerene can represent only
 non-negative Gaussian curvature and relaxes slightly rounder than the mesh
 (aspect 0.50 vs 0.43); the belly of the capsid carries some negative (saddle)
@@ -186,7 +203,8 @@ the belly exactly would require 5-7 scars (a defected cage), which is outside th
 FILE MAP
 --------
 Working pipeline (in run order):
-    prep_mesh.py            0   STL -> manifold npz/obj
+    prep_mesh.py            0   STL/PLY -> manifold npz/obj (+ auto-subdivide coarse)
+    subdivide_mesh.py       0b  Loop subdivision (refine+smooth); used by prep + CLI
     principal_curvature.py  1a  per-vertex K, H, k1, k2, bowl
     charge_partition_bowl.py 1b 12 bowl-anchored pentamer sites (deterministic)
     full_search.py          2   H-scan x multistart search + composite ranking

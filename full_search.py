@@ -91,8 +91,8 @@ print("scanned %d candidates in %.0fs"%(len(cands),time.time()-t0),flush=True)
 # stochastic, so an unlucky scan may contain none. Escalate multistart -- extra
 # random draws on the H values that came closest -- until one appears (capped).
 tries=0
-while not any(c[1]==0 for c in cands) and tries<48:
-    for H in sorted({c[0] for c in sorted(cands,key=lambda c:(c[1],c[2]))[:6]}):
+while not any(c[1]==0 for c in cands) and tries<int(sys.argv[1] if len(sys.argv)>1 else 150):
+    for H in Hgrid:                      # sweep the full grid with fresh random seeds
         of="/tmp/cand_%d.obj"%ci; run_im(2*H+20,of); V,tris=load_obj(of)
         dd,pe=cheap(V,tris); cands.append([H,dd,pe,of]); ci+=1; tries+=1
         if dd==0: break
@@ -108,10 +108,19 @@ for H,dd,pe,of in short:
     V,tris=load_obj(of); X,bonds,A,e2t=dualcage(V,tris); X=relax(X,bonds,A,2000)
     fm,hz,_=fitmetrics(X)
     scored.append(dict(H=H,defects=dd,pent_err=pe,fit_mean=fm,haus=hz,obj=of))
-# composite: gate fit_mean<8, prefer defect-free; rank pent_err then Hausdorff
-valid=[s for s in scored if s['fit_mean']<8.0]
-valid.sort(key=lambda s:(0 if s['defects']==0 else 1, round(s['pent_err'],3), round(s['haus'],2)))
-print("\n=== composite ranking (top) ===")
+# composite ranking. A TRUE fullerene is required, so defect-free is a HARD
+# preference: if any defect-free candidate exists, choose among those only. The
+# fit_mean<8 gate (computed from the search's rough, orientation-unresolved fit --
+# badly inflated for near-spherical shapes) must never drop every defect-free
+# option, so it only applies within the chosen pool. Rank pent_err then Hausdorff
+# (pent_err is orientation-independent; the authoritative fit is done in finalize).
+df=[s for s in scored if s['defects']==0]
+if df:
+    pool=df
+else:
+    pool=[s for s in scored if s['fit_mean']<8.0] or scored
+valid=sorted(pool,key=lambda s:(round(s['pent_err'],3), round(s['haus'],2)))
+print("\n=== composite ranking (top, %s) ==="%("defect-free pool" if df else "no defect-free found"))
 print(" H   def  pent_err  Hausdorff%  fit_mean%")
 for s in valid[:8]:
     print("%3d   %2d   %.3f      %5.1f      %5.1f"%(s['H'],s['defects'],s['pent_err'],s['haus'],s['fit_mean']))

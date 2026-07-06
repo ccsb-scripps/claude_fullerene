@@ -7,7 +7,7 @@ T0=$(date +%s); s(){ echo "   $1 $(( $(date +%s)-$2 ))s"; }
 
 echo "===== bowl-anchored fullerene fit :: $STL ====="
 echo "--- 0  mesh prep (STL -> manifold npz/obj) ---";         t=$(date +%s)
-python -u prep_mesh.py "$STL" | { grep -E "welded|wrote" || true; };                        s step0 $t
+python -u prep_mesh.py "$STL" | { grep -E "verts|welded|wrote" || true; };                   s step0 $t
 echo "--- 1a principal curvature ---";                          t=$(date +%s)
 python -u principal_curvature.py | { grep -E "verts" || true; };                            s step1a $t
 echo "--- 1b bowl-anchored pentamer placement (deterministic) ---"; t=$(date +%s)
