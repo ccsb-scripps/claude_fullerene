@@ -1,0 +1,10 @@
+# cage_4 -- fullerene fit
+source_mesh:  cage_4_process.ply  (decimate 0.10 + Taubin smooth of cage_4_organic; moderately
+              elongated, aspect ~0.52/0.46; 1256 verts, no subdivision)
+fullerene:    C478  =  12 pentagons + 229 hexagons  (defect-free, isolated-pentagon rule satisfied)
+point_group:  C1
+fit_mean:     4.2 %      Hausdorff95: 7.6 %
+pent_err:     0.54 hexamer-diameters
+
+# Ring Spiral Pentagon Indices (RSPI), 1-indexed, from Fullerene v4.5
+RSPI: 1 43 57 64 70 75 88 201 221 228 233 241

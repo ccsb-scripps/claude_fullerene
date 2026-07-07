@@ -1,0 +1,14 @@
+# cage_5 -- fullerene fit
+source_mesh:  cage_5_process.ply  (decimate 0.10 + Taubin smooth of cage_5_organic; very elongated
+              cone/tube, aspect ~0.36/0.35; 1608 verts, no subdivision)
+fullerene:    C502  =  12 pentagons + 241 hexagons  (defect-free)
+IPR:          NO -- 2 fused pentagon pairs (Np=2); expected for a pointed cap where pentamers cluster
+point_group:  C1
+fit_mean:     4.0 %      Hausdorff95: 7.1 %
+pent_err:     0.91 hexamer-diameters
+note:         scar-prone despite the elongation -- a defect-free (true) fullerene tiling is rare
+              here; found only after ~480 multistart draws, and at H=250 (top of the C range).
+
+# Ring Spiral Pentagon Indices (RSPI), 1-indexed, from Fullerene v4.5
+# (pentagons cluster near both ends -> low + high index groups)
+RSPI: 1 2 8 12 15 194 207 212 218 221 223 244
