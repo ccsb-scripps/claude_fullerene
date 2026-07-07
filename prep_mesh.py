@@ -32,14 +32,27 @@ def load_stl(buf):
     return V, F
 
 def load_ply(buf):
-    he = buf.index(b"end_header\n") + len(b"end_header\n")
+    hpos = buf.index(b"end_header"); he = buf.index(b"\n", hpos) + 1   # handles LF or CRLF
     hdr = buf[:he].decode("ascii", "replace").splitlines()
-    assert any("binary_little_endian" in l for l in hdr), "only binary_little_endian PLY supported"
-    nv = int([l for l in hdr if l.startswith("element vertex")][0].split()[-1])
-    nf = int([l for l in hdr if l.startswith("element face")][0].split()[-1])
-    off = he
-    V = np.frombuffer(buf, dtype="<f4", count=nv*3, offset=off).reshape(nv, 3).astype(np.float64)
-    off += nv*3*4
+    fmt = next(l for l in hdr if l.startswith("format"))
+    nv = int(next(l for l in hdr if l.startswith("element vertex")).split()[-1])
+    nf = int(next(l for l in hdr if l.startswith("element face")).split()[-1])
+    pv = 0; inv = False                                  # count vertex-block properties
+    for l in hdr:
+        if l.startswith("element vertex"): inv = True; continue
+        if l.startswith("element "): inv = False
+        if inv and l.startswith("property"): pv += 1
+    if "ascii" in fmt:
+        it = iter(buf[he:].decode("ascii", "replace").split())
+        V = np.array([[float(next(it)) for _ in range(pv)][:3] for _ in range(nv)], float)
+        F = []
+        for _ in range(nf):
+            k = int(next(it)); idx = [int(next(it)) for _ in range(k)]
+            if k == 3: F.append(idx)
+        return V, np.array(F)
+    off = he                                             # binary_little_endian
+    V = np.frombuffer(buf, dtype="<f4", count=nv*pv, offset=off).reshape(nv, pv)[:, :3].astype(np.float64)
+    off += nv*pv*4
     F = []
     for _ in range(nf):                                  # face = uchar count + count*uint32
         k = buf[off]; off += 1

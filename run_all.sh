@@ -2,6 +2,7 @@
 # End-to-end bowl-anchored fullerene fit for a segmented mesh.
 # Usage: ./run_all.sh [input.stl]   (default mesh4a.stl)
 cd /Users/olson/Dev/fullerenes; source .venv/bin/activate
+pkill -9 -f InstantMeshesBatch 2>/dev/null; true   # clear any stale remesher procs from a prior run
 STL="${1:-mesh4a.stl}"
 T0=$(date +%s); s(){ echo "   $1 $(( $(date +%s)-$2 ))s"; }
 

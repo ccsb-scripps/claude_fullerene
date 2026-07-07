@@ -8,6 +8,9 @@ import numpy as np, subprocess, time, sys, json
 from scipy.spatial import cKDTree
 from collections import defaultdict
 IMBIN="/Users/olson/Dev/fullerenes/instant-meshes/InstantMeshesBatch"; MESH="/tmp/mesh4a.obj"
+# guard: kill any stale InstantMeshesBatch from a previous/crashed run -- leftover
+# procs contend for oneTBB threads and can silently corrupt this run's tilings.
+subprocess.run(["pkill","-9","-f","InstantMeshesBatch"],stderr=subprocess.DEVNULL); time.sleep(0.3)
 m=np.load("/tmp/mesh4a.npz"); Vm=m['V']; Fm=m['F']
 cM=Vm.mean(0); u0,s0,vtM=np.linalg.svd(Vm-cM,full_matrices=False); Mc=(Vm-cM)@vtM.T
 Rm=np.linalg.norm(Vm-cM,axis=1).mean(); tree=cKDTree(Vm)
