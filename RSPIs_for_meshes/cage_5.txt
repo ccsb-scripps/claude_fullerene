@@ -5,7 +5,7 @@ fullerene:    C502  =  12 pentagons + 241 hexagons  (defect-free)
 IPR:          NO -- 2 fused pentagon pairs (Np=2); expected for a pointed cap where pentamers cluster
 point_group:  C1
 fit_mean:     4.0 %      Hausdorff95: 7.1 %
-pent_err:     0.91 hexamer-diameters
+pent_err:     0.73 hexamer-diameters (after enantiomer-aware registration; ends 0.52)
 note:         scar-prone despite the elongation -- a defect-free (true) fullerene tiling is rare
               here; found only after ~480 multistart draws, and at H=250 (top of the C range).
 
