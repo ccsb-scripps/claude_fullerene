@@ -1,0 +1,11 @@
+# mesh5 -- fullerene fit
+source_mesh:  mesh5.stl  (elongated spindle/cone, aspect ~0.40/0.35; 1256 verts, no subdivision)
+fullerene:    C468  =  12 pentagons + 224 hexagons  (defect-free, isolated-pentagon rule satisfied)
+point_group:  C1
+fit_mean:     4.1 %      Hausdorff95: 7.3 %
+pent_err:     0.40 hexamer-diameters (bowl-marker match -- the tightest of all meshes;
+              sharp tips strongly localize the disclinations)
+
+# Ring Spiral Pentagon Indices (RSPI), 1-indexed, from Fullerene v4.5
+# (positions of the 12 pentagons along the canonical ring-spiral winding)
+RSPI: 1 26 31 47 69 129 197 218 222 230 232 234

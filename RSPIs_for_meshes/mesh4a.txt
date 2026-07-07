@@ -1,0 +1,12 @@
+# mesh4a -- fullerene fit
+source_mesh:  mesh4a.stl  (HIV-1 capsid core, spindle, aspect ~0.43/0.40; 2371 verts, no subdivision)
+fullerene:    C488  =  12 pentagons + 234 hexagons  (defect-free, isolated-pentagon rule satisfied)
+point_group:  C1
+fit_mean:     3.7 %      Hausdorff95: ~6.5 %
+pent_err:     0.49 hexamer-diameters (bowl-marker match)
+note:         representative from a 10-run ensemble; mesh4a lies on a near-tie size plateau
+              C482-C516 (all statistically equivalent). This is the best-pent_err member.
+
+# Ring Spiral Pentagon Indices (RSPI), 1-indexed, from Fullerene v4.5
+# (positions of the 12 pentagons along the canonical ring-spiral winding)
+RSPI: 1 22 26 59 61 157 161 196 209 229 240 245
