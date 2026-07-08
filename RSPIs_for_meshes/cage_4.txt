@@ -7,4 +7,4 @@ fit_mean:     4.2 %      Hausdorff95: 7.6 %
 pent_err:     0.54 hexamer-diameters
 
 # Ring Spiral Pentagon Indices (RSPI), 1-indexed, from Fullerene v4.5
-RSPI: 1 43 57 64 70 75 88 201 221 228 233 241
+RSPI: 1 51 53 60 66 71 78 208 219 228 233 239

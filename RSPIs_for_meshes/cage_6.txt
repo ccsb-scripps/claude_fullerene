@@ -8,4 +8,4 @@ bond_CV:      0.01 %
 
 # Ring Spiral Pentagon Indices (RSPI), 1-indexed, from Fullerene v4.5
 # (positions of the 12 pentagons along the canonical ring-spiral winding)
-RSPI: 1 11 43 94 108 128 151 159 167 196 211 220
+RSPI: 1 7 45 94 108 128 151 159 170 190 217 225

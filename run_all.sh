@@ -18,7 +18,7 @@ python -u full_search.py | { grep -E "scanned|REPRESENTATIVE|near-tie|total" || 
 echo "--- 3  finalize: dual + FF relax + orientation-resolved fit ---"; t=$(date +%s)
 python -u finalize_rep.py | { grep -E "fullerene C|regularity|fit:" || true; };             s step3 $t
 echo "--- 4  close roll gauge freedom (register pentamers to bowls) ---"; t=$(date +%s)
-python -u roll_align.py | { grep -E "roll opt|rewrote" || true; };                          s step4 $t
+python -u roll_align.py | { grep -E "register opt|rewrote" || true; };                       s step4 $t
 echo "--- 5  canonical RSPI via Fullerene v4.5 (optional) ---";  t=$(date +%s)
 XYZ=$(ls -t mesh4a_C*_representative.xyz 2>/dev/null | head -1)
 if [ -n "$XYZ" ]; then

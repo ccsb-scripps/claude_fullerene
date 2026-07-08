@@ -8,4 +8,4 @@ pent_err:     0.40 hexamer-diameters (bowl-marker match -- the tightest of all m
 
 # Ring Spiral Pentagon Indices (RSPI), 1-indexed, from Fullerene v4.5
 # (positions of the 12 pentagons along the canonical ring-spiral winding)
-RSPI: 1 26 31 47 69 129 197 218 222 230 232 234
+RSPI: 1 25 30 45 64 114 178 220 224 228 230 232

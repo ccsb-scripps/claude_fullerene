@@ -10,4 +10,4 @@ note:         near-spherical target is scar-prone (Bausch-Bowick); a defect-free
 
 # Ring Spiral Pentagon Indices (RSPI), 1-indexed, from Fullerene v4.5
 # (positions of the 12 pentagons along the canonical ring-spiral winding)
-RSPI: 1 45 49 86 104 136 154 169 175 203 211 234
+RSPI: 1 45 49 80 116 141 152 160 166 186 223 236

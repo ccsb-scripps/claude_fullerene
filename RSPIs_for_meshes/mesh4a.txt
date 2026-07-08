@@ -9,4 +9,4 @@ note:         representative from a 10-run ensemble; mesh4a lies on a near-tie s
 
 # Ring Spiral Pentagon Indices (RSPI), 1-indexed, from Fullerene v4.5
 # (positions of the 12 pentagons along the canonical ring-spiral winding)
-RSPI: 1 22 26 59 61 157 161 196 209 229 240 245
+RSPI: 1 19 23 54 56 148 152 185 215 232 240 245
