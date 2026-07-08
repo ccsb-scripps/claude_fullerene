@@ -4,9 +4,10 @@
  2) relax+fit the shortlist (Hausdorff, fit_mean, regularity);
  3) composite rank: pent_err primary, Hausdorff secondary, defect-free preferred;
  4) lock in representative (heal if needed), report the near-tie band."""
-import numpy as np, subprocess, time, sys, json
+import numpy as np, subprocess, time, sys, json, os
 from scipy.spatial import cKDTree
 from collections import defaultdict
+from heal import heal
 IMBIN="/Users/olson/Dev/fullerenes/instant-meshes/InstantMeshesBatch"; MESH="/tmp/mesh4a.obj"
 # guard: kill any stale InstantMeshesBatch from a previous/crashed run -- leftover
 # procs contend for oneTBB threads and can silently corrupt this run's tilings.
@@ -19,13 +20,15 @@ ar=0.5*np.linalg.norm(np.cross(Vm[Fm[:,1]]-Vm[Fm[:,0]],Vm[Fm[:,2]]-Vm[Fm[:,0]]),
 HEXDIA=float(np.sqrt(2*ar/(242*np.sqrt(3))))
 
 def run_im(faces,out):
-    for _ in range(4):   # retry with a timeout guard: IM occasionally hangs on a degenerate field
+    for _ in range(4):   # retry with a timeout guard: IM occasionally hangs (oneTBB race)
+        try: os.remove(out)                       # never read a stale/partial file from a hang
+        except OSError: pass
         try:
             subprocess.run([IMBIN,MESH,"-o",out,"-r","6","-p","6","-f",str(faces)],
                            stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=6)
-            return True
         except subprocess.TimeoutExpired:
-            subprocess.run(["pkill","-f","InstantMeshesBatch"],stderr=subprocess.DEVNULL); continue
+            subprocess.run(["pkill","-9","-f","InstantMeshesBatch"],stderr=subprocess.DEVNULL); continue
+        if os.path.exists(out): return True        # only success if IM actually wrote output
     return False
 def load_obj(fn):
     V=[];T=[]
@@ -42,6 +45,23 @@ def cheap(V,tris):
     d5=V[np.where(deg==5)[0]]
     pe=float(np.linalg.norm(PEAKS[:,None,:]-d5[None,:,:],axis=2).min(axis=1).mean())/HEXDIA if len(d5) else 9.9
     return int((deg<5).sum()+(deg>6).sum()), pe
+def write_obj(fn,V,tris):
+    with open(fn,"w") as f:
+        for p in V: f.write("v %.6f %.6f %.6f\n"%(p[0],p[1],p[2]))
+        for t in tris: f.write("f "+" ".join(str(i+1) for i in t)+"\n")
+HEALMAX=6; HEALBUDGET=1.5; _ci=[0]
+def gen_cand(H):
+    """one candidate: remesh, and if it is a few defects short of a true fullerene,
+    flip-heal it to defect-free (rewriting the OBJ so downstream reads the healed cage)."""
+    of="/tmp/cand_%d.obj"%_ci[0]; _ci[0]+=1
+    if not run_im(2*H+20,of): return None
+    V,tris=load_obj(of)
+    if len(V)==0: return None
+    dd,pe=cheap(V,tris)
+    if 1<=dd<=HEALMAX:
+        healed,nd=heal(V,tris,budget=HEALBUDGET)
+        if nd==0: write_obj(of,V,healed); dd,pe=cheap(V,healed)
+    return [H,dd,pe,of]
 def dualcage(V,tris):
     e2t=defaultdict(list)
     for ti,t in enumerate(tris):
@@ -83,22 +103,22 @@ def fitmetrics(X):
 t0=time.time()
 Hgrid=list(range(220,251,2)); K=6
 cands=[]   # (H,defects,pent_err,objfile)
-ci=0
 for H in Hgrid:
-    faces=2*H+20
     for k in range(K):
-        of="/tmp/cand_%d.obj"%ci; run_im(faces,of); V,tris=load_obj(of)
-        dd,pe=cheap(V,tris); cands.append([H,dd,pe,of]); ci+=1
-print("scanned %d candidates in %.0fs"%(len(cands),time.time()-t0),flush=True)
+        c=gen_cand(H)
+        if c: cands.append(c)
+print("scanned %d candidates in %.0fs (%d defect-free after heal)"%(
+    len(cands),time.time()-t0,sum(c[1]==0 for c in cands)),flush=True)
 # guarantee a TRUE-fullerene (defect-free) candidate exists: the remesher is
-# stochastic, so an unlucky scan may contain none. Escalate multistart -- extra
-# random draws on the H values that came closest -- until one appears (capped).
+# stochastic, so an unlucky scan may contain none. Escalate -- extra random draws
+# (each flip-healed if near-clean) sweeping the full grid until one appears (capped).
 tries=0
 while not any(c[1]==0 for c in cands) and tries<int(sys.argv[1] if len(sys.argv)>1 else 150):
-    for H in Hgrid:                      # sweep the full grid with fresh random seeds
-        of="/tmp/cand_%d.obj"%ci; run_im(2*H+20,of); V,tris=load_obj(of)
-        dd,pe=cheap(V,tris); cands.append([H,dd,pe,of]); ci+=1; tries+=1
-        if dd==0: break
+    for H in Hgrid:
+        c=gen_cand(H); tries+=1
+        if c:
+            cands.append(c)
+            if c[1]==0: break
     if any(c[1]==0 for c in cands): break
 if tries: print("top-up multistart: +%d draws, defect-free found=%s"%(
     tries,any(c[1]==0 for c in cands)),flush=True)
