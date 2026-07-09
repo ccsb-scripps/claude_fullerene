@@ -75,6 +75,17 @@ E = len(ec); nonman = sum(1 for c in ec.values() if c != 2)
 print("%d verts, %d faces | E=%d Euler(V-E+F)=%d nonmanifold_edges=%d"
       % (len(V), len(F), E, len(V)-E+len(F), nonman))
 
+# physical-size estimate (uses the ORIGINAL, pre-subdivision area). Capsomers tile
+# the surface at the CA hexamer center-to-center spacing d; each cell = (sqrt3/2)*d^2.
+# faces = 12 + H, and the 12 pentamers are smaller (H = Area/Acell - 7.95). This sets
+# a mesh-specific H window for full_search. d overridable via HEX_D (default 95.5 A).
+import os, json
+_area = 0.5*np.linalg.norm(np.cross(V[F[:,1]]-V[F[:,0]], V[F[:,2]]-V[F[:,0]]), axis=1).sum()
+_d = float(os.environ.get("HEX_D", 95.5)); _Acell = (np.sqrt(3)/2)*_d**2
+_Hest = int(round(_area/_Acell - 7.95)); _Cest = 20 + 2*_Hest
+json.dump({"area": float(_area), "d": _d, "H_est": _Hest, "C_est": _Cest}, open("/tmp/mesh_est.json", "w"))
+print("area %.0f A^2 -> at d=%.1f A: H_est=%d  C_est=%d" % (_area, _d, _Hest, _Cest))
+
 # auto-subdivide COARSE inputs: below ~1000 verts the pi/3 charge partition
 # overshoots and the surface is faceted, loosening pentamer placement. Loop-refine
 # to >= ~4000 verts (fine meshes like mesh4a/mesh5 are already above trigger and

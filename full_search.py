@@ -101,7 +101,13 @@ def fitmetrics(X):
     return dS.mean()/Rm*100, max(np.percentile(dS,95),np.percentile(dM,95))/Rm*100, Xw
 
 t0=time.time()
-Hgrid=list(range(220,251,2)); K=6
+try:                                     # mesh-specific H window from the area estimate
+    est=json.load(open("/tmp/mesh_est.json"))["H_est"]
+    W=int(sys.argv[2]) if len(sys.argv)>2 else 4
+    Hgrid=list(range(est-W,est+W+1)); K=6
+    print("H window from area estimate: H=%d..%d (C_est=%d)"%(Hgrid[0],Hgrid[-1],20+2*est),flush=True)
+except Exception:
+    Hgrid=list(range(220,251,2)); K=6    # fallback: generic range
 cands=[]   # (H,defects,pent_err,objfile)
 for H in Hgrid:
     for k in range(K):
