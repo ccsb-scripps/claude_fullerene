@@ -59,6 +59,10 @@ for it in range(8000):
     gj=dE/ss*dcj; gk=dE/ss*dck
     np.add.at(Fc,A[:,0],gj); np.add.at(Fc,A[:,2],gk); np.add.at(Fc,A[:,1],-(gj+gk))
     X=X+0.05*Fc
+from planarize_cage import planarize, face_planarity   # flatten puckered faces (bond+angle relax alone leaves them buckled)
+_L0=np.median(np.linalg.norm(X[bonds[:,0]]-X[bonds[:,1]],axis=1)); _pre=face_planarity(X,pent+hexf,_L0).mean()
+X=planarize(X,bonds,pent+hexf)
+print("planarized faces: mean out-of-plane/bond %.3f -> %.3f"%(_pre,face_planarity(X,pent+hexf,_L0).mean()))
 bl=np.linalg.norm(X[bonds[:,0]]-X[bonds[:,1]],axis=1)
 def adev(fs,ideal):
     r=[]
