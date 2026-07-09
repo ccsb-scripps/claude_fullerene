@@ -1,10 +1,13 @@
-# cage_4 -- fullerene fit
-source_mesh:  cage_4_process.ply  (decimate 0.10 + Taubin smooth of cage_4_organic; moderately
-              elongated, aspect ~0.52/0.46; 1256 verts, no subdivision)
-fullerene:    C478  =  12 pentagons + 229 hexagons  (defect-free, isolated-pentagon rule satisfied)
+# cage_4 -- physically-sized fullerene fit
+source_mesh:  cage_4_process.ply  (moderately elongated)
+surface_area: 14514 nm^2  ->  C_est = 372 at CA hexamer spacing d=95.5 A
+fullerene:    C380  =  12 pentagons + 180 hexagons  (defect-free)
+IPR:          yes
 point_group:  C1
-fit_mean:     4.2 %      Hausdorff95: 7.6 %
-pent_err:     0.54 hexamer-diameters
+fit_mean:     4.3 %
+pent_err:     0.55 hexamer-diameters (pentamers on curvature bowls)
 
-# Ring Spiral Pentagon Indices (RSPI), 1-indexed, from Fullerene v4.5
-RSPI: 1 51 53 60 66 71 78 208 219 228 233 239
+# Size is set by the mesh's physical surface area (area-based H window), not an
+# arbitrary range; C_fit lands within ~+/-8 C of C_est. RSPI is the canonical ring
+# spiral computed from the cage topology (cage_rspi.py), program-independent.
+RSPI: 1 7 10 52 57 80 115 145 173 177 185 189

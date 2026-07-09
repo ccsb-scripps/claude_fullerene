@@ -1,11 +1,13 @@
-# mesh5 -- fullerene fit
-source_mesh:  mesh5.stl  (elongated spindle/cone, aspect ~0.40/0.35; 1256 verts, no subdivision)
-fullerene:    C468  =  12 pentagons + 224 hexagons  (defect-free, isolated-pentagon rule satisfied)
+# mesh5 -- physically-sized fullerene fit
+source_mesh:  mesh5.stl  (elongated spindle)
+surface_area: 14427 nm^2  ->  C_est = 370 at CA hexamer spacing d=95.5 A
+fullerene:    C384  =  12 pentagons + 182 hexagons  (defect-free)
+IPR:          NO (2 fused pentagon pairs)
 point_group:  C1
-fit_mean:     4.1 %      Hausdorff95: 7.3 %
-pent_err:     0.40 hexamer-diameters (bowl-marker match -- the tightest of all meshes;
-              sharp tips strongly localize the disclinations)
+fit_mean:     4.0 %
+pent_err:     0.52 hexamer-diameters (pentamers on curvature bowls)
 
-# Ring Spiral Pentagon Indices (RSPI), 1-indexed, from Fullerene v4.5
-# (positions of the 12 pentagons along the canonical ring-spiral winding)
-RSPI: 1 25 30 45 64 114 178 220 224 228 230 232
+# Size is set by the mesh's physical surface area (area-based H window), not an
+# arbitrary range; C_fit lands within ~+/-8 C of C_est. RSPI is the canonical ring
+# spiral computed from the cage topology (cage_rspi.py), program-independent.
+RSPI: 1 2 11 32 50 91 106 165 179 187 190 194

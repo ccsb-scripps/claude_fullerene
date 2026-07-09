@@ -1,12 +1,13 @@
-# mesh4a -- fullerene fit
-source_mesh:  mesh4a.stl  (HIV-1 capsid core, spindle, aspect ~0.43/0.40; 2371 verts, no subdivision)
-fullerene:    C488  =  12 pentagons + 234 hexagons  (defect-free, isolated-pentagon rule satisfied)
+# mesh4a -- physically-sized fullerene fit
+source_mesh:  mesh4a.stl  (spindle (HIV-1 capsid core))
+surface_area: 18920 nm^2  ->  C_est = 484 at CA hexamer spacing d=95.5 A
+fullerene:    C490  =  12 pentagons + 235 hexagons  (defect-free)
+IPR:          yes
 point_group:  C1
-fit_mean:     3.7 %      Hausdorff95: ~6.5 %
-pent_err:     0.49 hexamer-diameters (bowl-marker match)
-note:         representative from a 10-run ensemble; mesh4a lies on a near-tie size plateau
-              C482-C516 (all statistically equivalent). This is the best-pent_err member.
+fit_mean:     3.9 %
+pent_err:     0.64 hexamer-diameters (pentamers on curvature bowls)
 
-# Ring Spiral Pentagon Indices (RSPI), 1-indexed, from Fullerene v4.5
-# (positions of the 12 pentagons along the canonical ring-spiral winding)
-RSPI: 1 19 23 54 56 148 152 185 215 232 240 245
+# Size is set by the mesh's physical surface area (area-based H window), not an
+# arbitrary range; C_fit lands within ~+/-8 C of C_est. RSPI is the canonical ring
+# spiral computed from the cage topology (cage_rspi.py), program-independent.
+RSPI: 1 7 10 23 76 84 140 223 232 234 240 245

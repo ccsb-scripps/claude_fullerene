@@ -44,7 +44,28 @@ def faces_of(X):
     if sum(len(f)==5 for f in F)!=12: F=trace(-1)
     return [f for f in F if len(f) in (5,6)]
 
+def orient(faces):
+    """flood-fill a consistent orientation so adjacent faces traverse the shared
+    edge in opposite directions (required by the spiral winder)."""
+    ue=defaultdict(list)
+    for fi,f in enumerate(faces):
+        k=len(f)
+        for i in range(k): ue[frozenset((f[i],f[(i+1)%k]))].append(fi)
+    de=lambda f:{(f[i],f[(i+1)%len(f)]) for i in range(len(f))}
+    out=[None]*len(faces); out[0]=list(faces[0]); done=[False]*len(faces); done[0]=True
+    from collections import deque
+    q=deque([0])
+    while q:
+        fi=q.popleft()
+        for (a,b) in de(out[fi]):
+            for fj in ue[frozenset((a,b))]:
+                if fj==fi or done[fj]: continue
+                g=list(faces[fj]); out[fj]=g if (b,a) in de(g) else g[::-1]
+                done[fj]=True; q.append(fj)
+    return out
+
 def canonical_rspi(faces):
+    faces=orient(faces)
     F=len(faces)
     edge2f=defaultdict(list)
     for fi,f in enumerate(faces):
