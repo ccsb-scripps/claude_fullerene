@@ -23,6 +23,13 @@ fullerene/
 *.obj
 *.inp
 *_edges.txt
+*.pdb
+*.pdb1
+*.cif
+*.mmcif
+
+# Fetched capsomer templates (RCSB 3H47, 3P05) + large atomic-capsid outputs (>100MB)
+capsomer_templates/
 
 # macOS
 .DS_Store

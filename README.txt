@@ -164,6 +164,25 @@ To run on a DIFFERENT mesh: pass its STL to run_all.sh. prep_mesh.py welds and
 manifold-checks it; everything downstream is generic. (For non-spindle shapes,
 widen the H grid in full_search.py so 2H+20 spans the expected carbon count.)
 
+Pseudo-atomic capsid (mesh -> atomic model):
+    python build_atomic_capsid.py mesh4a_C<N>_representative.xyz mesh4a.stl
+  Decorates the fitted cage with real CA capsomers (RCSB 3H47 hexamer + 3P05
+  pentamer, auto-fetched to ./capsomer_templates/): one per cage face, symmetry
+  axis on the local facet normal, subunits rotated toward the inter-capsomer
+  2-fold edges. All steric overlap is then removed by tethered rigid-body
+  relaxation (Calpha pass then all-heavy-atom pass; capsomers move only ~1-2 A /
+  a few degrees). Result: no inter-capsomer heavy-atom contact < 2.6 A at native
+  ~95.5 A spacing. Writes, in one shared Angstrom frame:
+    <prefix>_capsid_atomic.pdb    all-atom (~2.3M atoms; hybrid-36 serials,
+                                  segID cols 73-76 = capsomer Hnnn/Pnnn)
+    <prefix>_capsid_atomic.cif    same as mmCIF (unique chain id per subunit)
+    <prefix>_capsid_backbone.pdb  N,CA,C,O only; pentamers flagged segID P* and
+                                  B-factor=100 (color-by-B shows the 12 pentamers)
+    <mesh>_surface.obj            cryo-ET surface carried into the model frame
+  Uses the repo .venv (numpy+scipy); needs network on first run for the templates.
+  The multi-hundred-MB PDB/CIF are .gitignore'd (>GitHub's 100MB limit) -- they
+  regenerate deterministically from this one command.
+
 
 RESULTS ON mesh4a (HIV-1 capsid core, spindle, asphericity 2.60)
 ----------------------------------------------------------------
@@ -211,6 +230,8 @@ Working pipeline (in run order):
     finalize_rep.py         3   dual + FF relax + orientation-resolved 7-DOF fit
     roll_align.py           4   close roll gauge freedom; write viewer/render data
     run_fullerene.sh        5   canonical RSPI via Fullerene v4.5 (optional)
+    build_atomic_capsid.py  6   decorate cage with CA capsomers (3H47/3P05) ->
+                                clash-free pseudo-atomic capsid PDB/mmCIF/backbone
     ensemble_run.py             N-instance variation study
     run_all.sh                  orchestrates stages 0-5
     instant-meshes/             field-aligned remesher (see build notes there)
