@@ -5,8 +5,13 @@ real CA capsomers -- 3H47 hexamer + 3P05 pentamer (stage 6, `build_atomic_capsid
 All capsomers are rigid copies of the same two canonical structures, so each model
 is stored as a compact **`<mesh>_C<N>_capsid_transforms.json`** (~40-50 KB: one
 `world = R @ canonical_template + t` operator per capsomer) instead of a ~180 MB
-coordinate file. `<mesh>_surface.obj` is the cryo-ET surface carried into the same
-Angstrom reference frame (so surface + capsid overlay directly).
+coordinate file.
+
+**Coordinate frame: the original cryo-ET mesh frame (Ångström).** Every model
+(transforms, assembly mmCIF, and `<mesh>_surface.obj`) is in the SAME frame as the
+source segmentation mesh, so loading your original mesh file together with the
+expanded capsid (or the assembly) overlays them directly — no alignment needed.
+`<mesh>_surface.obj` is that mesh (a convenience copy).
 
 ## Rebuild the full atomic model
 ```bash

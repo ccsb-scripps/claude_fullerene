@@ -120,10 +120,11 @@ regenerable artifacts rather than storing them.
 
 ## Companion surface
 
-`capsid_models/<mesh>_surface.obj` (name is also in the JSON's `mesh_surface_obj`
-field) is the original cryo-ET segmentation surface, transformed into the **same
-Ångström frame** as the model. Load it together with the expanded PDB/CIF and the
-surface wraps the capsomers directly — no extra alignment.
+All models are in the **original cryo-ET mesh frame** (Ångström): the transforms,
+the expanded PDB/CIF, and the assembly are placed exactly where the source
+segmentation mesh sits, so **your original mesh file overlays the capsid directly**
+— no alignment needed. `capsid_models/<mesh>_surface.obj` (name also in the JSON's
+`mesh_surface_obj` field) is a convenience copy of that mesh in the same frame.
 
 ---
 
