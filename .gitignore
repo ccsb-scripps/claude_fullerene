@@ -32,8 +32,9 @@ fullerene/
 capsomer_templates/
 
 # capsid_models/ : DO commit the compact per-mesh transforms JSON + co-registered
-# surface OBJs (small); skip the build/areafit logs.
+# surface OBJs + assembly mmCIFs (all small); skip the build/areafit logs.
 !capsid_models/*.obj
+!capsid_models/*_assembly.cif
 capsid_models/*.log
 
 # macOS
