@@ -95,9 +95,11 @@ def load_cage(cagefile, spacing, faces_json=None):
     # available; faces_of() (coordinate-based) is only reliable on a relaxed/uniform
     # cage. Pair a relaxed .xyz (uniform bonds -> clean packing) with --faces for the
     # cleanest result; a fit best.json can be locally compressed and leave clashes.
+    meshV=meshF=None
     if cagefile.endswith(".json"):
         D=json.load(open(cagefile)); X=np.array(D['atoms'])
         faces=[list(map(int,f)) for f in D['pent']]+[list(map(int,f)) for f in D['hex']]
+        if 'meshV' in D: meshV=np.array(D['meshV'],float); meshF=np.array(D['meshF'])  # cage & mesh share this frame
     else:
         X=load_xyz(cagefile)
         if faces_json:
@@ -118,7 +120,7 @@ def load_cage(cagefile, spacing, faces_json=None):
     hexset={i for i,f in enumerate(faces) if len(f)==6}
     hh=[np.linalg.norm(fcent[a]-fcent[b]) for a,b in pairs if a in hexset and b in hexset]
     sc=spacing/np.median(hh); Xc*=sc; fcent*=sc
-    return X, faces, Xc, fcent, sorted(pairs), nhex, npent
+    return X, faces, Xc, fcent, sorted(pairs), nhex, npent, sc, meshV, meshF
 
 def build_frames(Xc, fcent, faces, azim_deg):
     gc=Xc.mean(0); A=np.radians(azim_deg); R0=[]; N=[]
@@ -348,16 +350,21 @@ def main():
     print("[1/6] templates"); tp=fetch_templates(a.templates)
     hx=canon(parse_pdb(tp["3H47.pdb1"],per_model_chain=True)); pt=canon(parse_pdb(tp["3P05.pdb"]))
     print("      hexamer %d atoms / pentamer %d atoms"%(len(hx['xyz']),len(pt['xyz'])))
-    print("[2/6] cage + faces"); X,faces,Xc,fcent,pairs,nhex,npent=load_cage(a.cage_xyz,a.spacing,a.faces)
+    print("[2/6] cage + faces"); X,faces,Xc,fcent,pairs,nhex,npent,scale,meshV,meshF=load_cage(a.cage_xyz,a.spacing,a.faces)
     print("      C%d: %d hexamers + %d pentamers, %d adjacent pairs"%(len(X),nhex,npent,len(pairs)))
     R0,N=build_frames(Xc,fcent,faces,a.azimuth)
     print("[3/6] placement (azimuth %.0f, spacing %.1f A)"%(a.azimuth,a.spacing))
     print("[4/6] rigid-body de-clash: Calpha (%d) then heavy-atom (%d)"%(a.ca_iters,a.heavy_iters))
     cen,phi=relax_ca(faces,R0,N,fcent,hx,pt,a.ca_iters)
     cen,phi=relax_heavy(faces,pairs,R0,N,cen,phi,hx,pt,a.heavy_iters)
-    print("[5/6] fit mesh -> model frame"); V,F,fitA,fitpct=mesh_to_model_frame(X,Xc,a.mesh)
-    obj=os.path.join(a.outdir,os.path.basename(a.mesh).rsplit(".",1)[0]+"_surface.obj"); write_obj(obj,V,F)
-    print("      cage->mesh fit %.1f A (%.1f%% of Rm); wrote %s"%(fitA,fitpct,obj))
+    print("[5/6] surface -> model frame")
+    obj=os.path.join(a.outdir,os.path.basename(a.mesh).rsplit(".",1)[0]+"_surface.obj")
+    if meshV is not None:                       # cage-json: mesh & cage share a frame -> exact co-registration (robust for near-spherical shapes)
+        V,F=(meshV-X.mean(0))*scale, meshF; write_obj(obj,V,F)
+        print("      surface co-registered from best.json meshV (scale %.4f); wrote %s"%(scale,obj))
+    else:                                       # xyz cage: fit the differently-framed mesh onto it (PCA + orientation search)
+        V,F,fitA,fitpct=mesh_to_model_frame(X,Xc,a.mesh); write_obj(obj,V,F)
+        print("      cage->mesh fit %.1f A (%.1f%% of Rm); wrote %s"%(fitA,fitpct,obj))
     print("[6/6] writing outputs (emit=%s)"%a.emit)
     if a.emit in ("transforms","both"):
         os.makedirs(a.templates,exist_ok=True)
