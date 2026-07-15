@@ -35,7 +35,7 @@ What it does:
 
 Requires numpy + scipy (use the repo .venv; the system python3 has neither).
 """
-import os, sys, struct, time, argparse, urllib.request
+import os, sys, json, struct, time, argparse, urllib.request
 import numpy as np
 from scipy.spatial import cKDTree
 from collections import defaultdict
@@ -293,6 +293,28 @@ def write_obj(path, V, F):
         for v in V: f.write("v %.4f %.4f %.4f\n"%(v[0],v[1],v[2]))
         for face in F: f.write("f "+" ".join(str(int(i)+1) for i in face)+"\n")
 
+def write_template_pdb(path, T):
+    """Canonical capsomer (small, <1MB) so instances can be rebuilt from transforms."""
+    with open(path,"w") as fo:
+        for k in range(len(T['xyz'])):
+            x,y,z=T['xyz'][k]
+            fo.write("ATOM  %5d %s   %8.3f%8.3f%8.3f  1.00  0.00      %2s\n"%((k+1)%100000,T['mid'][k],x,y,z,T['elem'][k]))
+        fo.write("END\n")
+
+def write_transforms(path, faces, cen, phi, R0, meta):
+    """Compact instance file: one rigid transform per capsomer (world = R @ canonical + t).
+    Expands to the full model via expand_capsid.py -- ~KB instead of ~180MB."""
+    caps=[]; nh=npv=0
+    for fi,f in enumerate(faces):
+        hexf=len(f)==6
+        if hexf: nh+=1; cid="H%03d"%nh
+        else: npv+=1; cid="P%03d"%npv
+        R=R0[fi]@_Rz1(phi[fi])
+        caps.append({"id":cid,"type":"hex" if hexf else "pent",
+                     "R":[[round(float(v),9) for v in row] for row in R],
+                     "t":[round(float(v),5) for v in cen[fi]]})
+    json.dump({**meta,"n_capsomers":len(caps),"capsomers":caps}, open(path,"w"), indent=0)
+
 # ---------------------------------------------------------------- main
 def main():
     ap=argparse.ArgumentParser(description="Build a pseudo-atomic HIV CA capsid from a fullerene cage.")
@@ -304,6 +326,8 @@ def main():
     ap.add_argument("--azimuth", type=float, default=30.0, help="subunit azimuth toward 2-fold edges, deg (default 30)")
     ap.add_argument("--ca-iters", type=int, default=200); ap.add_argument("--heavy-iters", type=int, default=400)
     ap.add_argument("--templates", default=os.path.join(REPO,"capsomer_templates"))
+    ap.add_argument("--emit", choices=["full","transforms","both"], default="both",
+                    help="full=big PDB/CIF/backbone; transforms=compact instance JSON + canonical templates (rebuild with expand_capsid.py); both (default)")
     a=ap.parse_args()
     prefix=a.out_prefix or os.path.basename(a.cage_xyz).replace("_representative","").replace(".xyz","")
     os.makedirs(a.outdir, exist_ok=True); t0=time.time()
@@ -321,11 +345,24 @@ def main():
     print("[5/6] fit mesh -> model frame"); V,F,fitA,fitpct=mesh_to_model_frame(X,Xc,a.mesh)
     obj=os.path.join(a.outdir,os.path.basename(a.mesh).rsplit(".",1)[0]+"_surface.obj"); write_obj(obj,V,F)
     print("      cage->mesh fit %.1f A (%.1f%% of Rm); wrote %s"%(fitA,fitpct,obj))
-    print("[6/6] writing coordinates")
-    p_pdb=os.path.join(a.outdir,prefix+"_capsid_atomic.pdb"); n=write_pdb(p_pdb,faces,cen,phi,R0,hx,pt)
-    p_cif=os.path.join(a.outdir,prefix+"_capsid_atomic.cif"); write_cif(p_cif,faces,cen,phi,R0,hx,pt)
-    p_bb =os.path.join(a.outdir,prefix+"_capsid_backbone.pdb"); nb=write_pdb(p_bb,faces,cen,phi,R0,hx,pt,backbone=True)
-    print("      %s  (%d atoms)"%(p_pdb,n)); print("      %s"%p_cif); print("      %s  (%d backbone atoms)"%(p_bb,nb))
+    print("[6/6] writing outputs (emit=%s)"%a.emit)
+    if a.emit in ("transforms","both"):
+        os.makedirs(a.templates,exist_ok=True)
+        hxt=os.path.join(a.templates,"hexamer_canonical.pdb"); ptt=os.path.join(a.templates,"pentamer_canonical.pdb")
+        write_template_pdb(hxt,hx); write_template_pdb(ptt,pt)
+        p_tr=os.path.join(a.outdir,prefix+"_capsid_transforms.json")
+        write_transforms(p_tr,faces,cen,phi,R0,{
+            "description":"HIV-1 CA pseudo-atomic capsid -- per-capsomer instance transforms",
+            "frame":"Angstrom; world = R @ canonical_template + t",
+            "hexamer_template":"RCSB 3H47 (canonical: centroid origin, axis +z, NTD out)",
+            "pentamer_template":"RCSB 3P05 (canonical)","spacing_A":a.spacing,"azimuth_deg":a.azimuth,
+            "cage":os.path.basename(a.cage_xyz),"mesh_surface_obj":os.path.basename(obj)})
+        print("      %s  (%d capsomer transforms; rebuild: expand_capsid.py)"%(p_tr,len(faces)))
+    if a.emit in ("full","both"):
+        p_pdb=os.path.join(a.outdir,prefix+"_capsid_atomic.pdb"); n=write_pdb(p_pdb,faces,cen,phi,R0,hx,pt)
+        p_cif=os.path.join(a.outdir,prefix+"_capsid_atomic.cif"); write_cif(p_cif,faces,cen,phi,R0,hx,pt)
+        p_bb =os.path.join(a.outdir,prefix+"_capsid_backbone.pdb"); nb=write_pdb(p_bb,faces,cen,phi,R0,hx,pt,backbone=True)
+        print("      %s  (%d atoms)"%(p_pdb,n)); print("      %s"%p_cif); print("      %s  (%d backbone atoms)"%(p_bb,nb))
     print("done in %.0f s"%(time.time()-t0))
 
 if __name__=="__main__":

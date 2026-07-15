@@ -183,6 +183,15 @@ Pseudo-atomic capsid (mesh -> atomic model):
   The multi-hundred-MB PDB/CIF are .gitignore'd (>GitHub's 100MB limit) -- they
   regenerate deterministically from this one command.
 
+  Space-saving instance form (--emit transforms): all capsomers are copies of the
+  same two canonical capsomers, so instead of ~180MB of coordinates you can keep a
+  ~50KB <prefix>_capsid_transforms.json (one rigid operator per capsomer,
+  world = R @ canonical_template + t) plus the shared canonical templates. Rebuild
+  the full PDB/CIF/backbone on demand:
+      python build_atomic_capsid.py <cage>.xyz <mesh> --emit transforms
+      python expand_capsid.py <prefix>_capsid_transforms.json [--cif] [--backbone]
+  (--emit both, the default, writes the full coordinates AND the transforms.)
+
 
 RESULTS ON mesh4a (HIV-1 capsid core, spindle, asphericity 2.60)
 ----------------------------------------------------------------
@@ -232,6 +241,7 @@ Working pipeline (in run order):
     run_fullerene.sh        5   canonical RSPI via Fullerene v4.5 (optional)
     build_atomic_capsid.py  6   decorate cage with CA capsomers (3H47/3P05) ->
                                 clash-free pseudo-atomic capsid PDB/mmCIF/backbone
+    expand_capsid.py        6b  rebuild the full capsid from a --emit transforms JSON
     ensemble_run.py             N-instance variation study
     run_all.sh                  orchestrates stages 0-5
     instant-meshes/             field-aligned remesher (see build notes there)
