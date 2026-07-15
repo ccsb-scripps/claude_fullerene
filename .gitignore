@@ -31,5 +31,10 @@ fullerene/
 # Fetched capsomer templates (RCSB 3H47, 3P05) + large atomic-capsid outputs (>100MB)
 capsomer_templates/
 
+# capsid_models/ : DO commit the compact per-mesh transforms JSON + co-registered
+# surface OBJs (small); skip the build/areafit logs.
+!capsid_models/*.obj
+capsid_models/*.log
+
 # macOS
 .DS_Store

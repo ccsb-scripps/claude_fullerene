@@ -90,8 +90,20 @@ def canon(recs):
                 chain=ch, resSeq=rs, mid=mid)
 
 # ---------------------------------------------------------------- cage
-def load_cage(cagexyz, spacing):
-    X=load_xyz(cagexyz); faces=faces_of(X)
+def load_cage(cagefile, spacing, faces_json=None):
+    # faces come from the AUTHORITATIVE 12-pentagon list (best.json pent/hex) when
+    # available; faces_of() (coordinate-based) is only reliable on a relaxed/uniform
+    # cage. Pair a relaxed .xyz (uniform bonds -> clean packing) with --faces for the
+    # cleanest result; a fit best.json can be locally compressed and leave clashes.
+    if cagefile.endswith(".json"):
+        D=json.load(open(cagefile)); X=np.array(D['atoms'])
+        faces=[list(map(int,f)) for f in D['pent']]+[list(map(int,f)) for f in D['hex']]
+    else:
+        X=load_xyz(cagefile)
+        if faces_json:
+            D=json.load(open(faces_json)); faces=[list(map(int,f)) for f in D['pent']]+[list(map(int,f)) for f in D['hex']]
+        else:
+            faces=faces_of(X)
     nhex=sum(len(f)==6 for f in faces); npent=sum(len(f)==5 for f in faces)
     Xc=X-X.mean(0); fcent=np.array([Xc[f].mean(0) for f in faces])
     v2f=defaultdict(list)
@@ -328,6 +340,7 @@ def main():
     ap.add_argument("--templates", default=os.path.join(REPO,"capsomer_templates"))
     ap.add_argument("--emit", choices=["full","transforms","both"], default="both",
                     help="full=big PDB/CIF/backbone; transforms=compact instance JSON + canonical templates (rebuild with expand_capsid.py); both (default)")
+    ap.add_argument("--faces", default=None, help="best.json with authoritative pent/hex faces, to pair with a relaxed .xyz geometry")
     a=ap.parse_args()
     prefix=a.out_prefix or os.path.basename(a.cage_xyz).replace("_representative","").replace(".xyz","")
     os.makedirs(a.outdir, exist_ok=True); t0=time.time()
@@ -335,7 +348,7 @@ def main():
     print("[1/6] templates"); tp=fetch_templates(a.templates)
     hx=canon(parse_pdb(tp["3H47.pdb1"],per_model_chain=True)); pt=canon(parse_pdb(tp["3P05.pdb"]))
     print("      hexamer %d atoms / pentamer %d atoms"%(len(hx['xyz']),len(pt['xyz'])))
-    print("[2/6] cage + faces"); X,faces,Xc,fcent,pairs,nhex,npent=load_cage(a.cage_xyz,a.spacing)
+    print("[2/6] cage + faces"); X,faces,Xc,fcent,pairs,nhex,npent=load_cage(a.cage_xyz,a.spacing,a.faces)
     print("      C%d: %d hexamers + %d pentamers, %d adjacent pairs"%(len(X),nhex,npent,len(pairs)))
     R0,N=build_frames(Xc,fcent,faces,a.azimuth)
     print("[3/6] placement (azimuth %.0f, spacing %.1f A)"%(a.azimuth,a.spacing))
