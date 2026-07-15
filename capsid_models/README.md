@@ -17,6 +17,13 @@ This auto-fetches the RCSB templates, regenerates the canonical capsomers, and
 writes the full PDB (and optionally mmCIF / an N,CA,C,O backbone with pentamers
 flagged). Needs the repo `.venv` (numpy/scipy).
 
+**Assembly mmCIF (committed).** Each mesh also has a ~1.2 MB
+`<mesh>_C<N>_capsid_assembly.cif`: one hexamer + one pentamer reference plus a
+`pdbx_struct_assembly` / `pdbx_struct_oper_list` transformation list (one operator
+per capsomer). Viewers that support assemblies expand it to the full capsid
+(Mol*/PDBe "Assembly 1"; ChimeraX `sym #1 assembly 1`; PyMOL `set assembly, 1`).
+Regenerate with `expand_capsid.py ... --assembly`.
+
 ## Models
 
 | mesh | C | capsomers (hex + pent) | topology | surface fit % | pent_err | ~atoms |
