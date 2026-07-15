@@ -24,9 +24,10 @@ What it does:
      a few degrees; result: no inter-capsomer heavy-atom contact < 2.6 A at near-
      native ~96 A spacing. (Rigid isolated capsomers cannot tile at native density
      without this; the real capsid uses complementary flexible interfaces.)
-  5. Fit the cage to the input mesh and carry the mesh surface into the model
-     reference frame -> a co-registered .obj.
-  6. Write outputs (same Angstrom frame):
+  5. Reframe the whole model into the SOURCE-MESH frame (original cryo-ET
+     coordinates) by baking the model->mesh similarity into every operator, so the
+     input mesh overlays the capsid directly; the surface .obj is that source mesh.
+  6. Write outputs (all in the source-mesh Angstrom frame):
         <prefix>_capsid_atomic.pdb    all-atom, hybrid-36 serials, segID = capsomer
         <prefix>_capsid_atomic.cif    same as mmCIF (unique chain id per subunit)
         <prefix>_capsid_backbone.pdb  N,CA,C,O only; pentamers flagged (segID P*,
@@ -227,22 +228,32 @@ def load_ply(buf):
         if k==3: F.append(list(idx))
     return V,np.array(F)
 
-def mesh_to_model_frame(X, P_A, meshfile):
+def model_to_mesh(X, Xc, meshfile, meshV, meshF, scale):
+    """Similarity (s,R,t) mapping the working MODEL frame -> the SOURCE-MESH frame
+    (raw cryo-ET coordinates), plus that source mesh (verts,faces) and the
+    cage->mesh fit %. Baking (s,R,t) into the capsomer operators makes the whole
+    model land on the input mesh, so the original mesh overlays it directly.
+      - JSON cage: cage & mesh already share the mesh frame; the model is only
+        Xc=(X-Xmean)*scale (no rotation), so model->mesh = (1/scale, I, Xmean).
+      - xyz cage: the mesh is PCA/orientation-fit to the cage; invert the resulting
+        raw->model Procrustes."""
+    if meshV is not None:
+        return (1.0/scale, np.eye(3), X.mean(0)), meshV, meshF, None
     M,Fc=load_mesh(meshfile)
-    cX=X.mean(0); _,_,vt=np.linalg.svd(X-cX,full_matrices=False); Xc=(X-cX)@vt.T
+    cX=X.mean(0); _,_,vt=np.linalg.svd(X-cX,full_matrices=False); Xp=(X-cX)@vt.T
     cM=M.mean(0); _,_,vtM=np.linalg.svd(M-cM,full_matrices=False); Mc=(M-cM)@vtM.T; mt=cKDTree(M); best=None
     for swap in ([0,1,2],[0,2,1]):
         for s0 in (1,-1):
             for s1 in (1,-1):
                 for s2 in (1,-1):
-                    Xt=Xc[:,swap]*np.array([s0,s1,s2]); uni=(Mc.max(0)-Mc.min(0)).mean()/(Xt.max(0)-Xt.min(0)).mean()
+                    Xt=Xp[:,swap]*np.array([s0,s1,s2]); uni=(Mc.max(0)-Mc.min(0)).mean()/(Xt.max(0)-Xt.min(0)).mean()
                     Xw=(Xt*uni)@vtM+cM; sc=mt.query(Xw)[0].mean()
                     if best is None or sc<best[0]: best=(sc,Xw)
     Rm=np.linalg.norm(M-cM,axis=1).mean(); Xw=best[1]
-    src,dst=Xw,P_A; mp,mq=src.mean(0),dst.mean(0); Xs=src-mp; Ys=dst-mq
+    src,dst=Xw,Xc; mp,mq=src.mean(0),dst.mean(0); Xs=src-mp; Ys=dst-mq   # raw->model: Xc ~= s*R@Xw + t
     Cov=Ys.T@Xs/len(src); U,S,Vt=np.linalg.svd(Cov); d=np.sign(np.linalg.det(U@Vt))
     R=U@np.diag([1,1,d])@Vt; s=(S*np.array([1,1,d])).sum()/((Xs**2).sum()/len(src)); t=mq-s*R@mp
-    return s*(M@R.T)+t, Fc, best[0], best[0]/Rm*100
+    return (1.0/s, R.T, -(1.0/s)*(R.T@t)), M, Fc, best[0]/Rm*100   # inverted: model->raw
 
 # ---------------------------------------------------------------- writers
 _DU="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"; _DL=_DU.lower()
@@ -357,14 +368,13 @@ def main():
     print("[4/6] rigid-body de-clash: Calpha (%d) then heavy-atom (%d)"%(a.ca_iters,a.heavy_iters))
     cen,phi=relax_ca(faces,R0,N,fcent,hx,pt,a.ca_iters)
     cen,phi=relax_heavy(faces,pairs,R0,N,cen,phi,hx,pt,a.heavy_iters)
-    print("[5/6] surface -> model frame")
-    obj=os.path.join(a.outdir,os.path.basename(a.mesh).rsplit(".",1)[0]+"_surface.obj")
-    if meshV is not None:                       # cage-json: mesh & cage share a frame -> exact co-registration (robust for near-spherical shapes)
-        V,F=(meshV-X.mean(0))*scale, meshF; write_obj(obj,V,F)
-        print("      surface co-registered from best.json meshV (scale %.4f); wrote %s"%(scale,obj))
-    else:                                       # xyz cage: fit the differently-framed mesh onto it (PCA + orientation search)
-        V,F,fitA,fitpct=mesh_to_model_frame(X,Xc,a.mesh); write_obj(obj,V,F)
-        print("      cage->mesh fit %.1f A (%.1f%% of Rm); wrote %s"%(fitA,fitpct,obj))
+    print("[5/6] reframe to the source-mesh frame")
+    (sT,RT,tT),Vsurf,Fsurf,fitpct=model_to_mesh(X,Xc,a.mesh,meshV,meshF,scale)
+    M4=sT*RT                                    # bake model->mesh into every operator so the whole model sits on the input mesh
+    R0=np.einsum('ij,fjk->fik',M4,R0); cen=cen@M4.T+tT
+    obj=os.path.join(a.outdir,os.path.basename(a.mesh).rsplit(".",1)[0]+"_surface.obj"); write_obj(obj,Vsurf,Fsurf)
+    print("      reframed (scale %.4f%s); surface = source mesh -> %s"%(
+        sT,"" if fitpct is None else ", cage->mesh %.1f%% of Rm"%fitpct,obj))
     print("[6/6] writing outputs (emit=%s)"%a.emit)
     if a.emit in ("transforms","both"):
         os.makedirs(a.templates,exist_ok=True)
@@ -373,7 +383,7 @@ def main():
         p_tr=os.path.join(a.outdir,prefix+"_capsid_transforms.json")
         write_transforms(p_tr,faces,cen,phi,R0,{
             "description":"HIV-1 CA pseudo-atomic capsid -- per-capsomer instance transforms",
-            "frame":"Angstrom; world = R @ canonical_template + t",
+            "frame":"Angstrom; ORIGINAL cryo-ET mesh frame (overlays the input mesh); world = R @ canonical_template + t",
             "hexamer_template":"RCSB 3H47 (canonical: centroid origin, axis +z, NTD out)",
             "pentamer_template":"RCSB 3P05 (canonical)","spacing_A":a.spacing,"azimuth_deg":a.azimuth,
             "cage":os.path.basename(a.cage_xyz),"mesh_surface_obj":os.path.basename(obj)})

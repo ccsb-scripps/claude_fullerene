@@ -172,13 +172,15 @@ Pseudo-atomic capsid (mesh -> atomic model):
   2-fold edges. All steric overlap is then removed by tethered rigid-body
   relaxation (Calpha pass then all-heavy-atom pass; capsomers move only ~1-2 A /
   a few degrees). Result: no inter-capsomer heavy-atom contact < 2.6 A at native
-  ~95.5 A spacing. Writes, in one shared Angstrom frame:
+  ~95.5 A spacing. The whole model is finally reframed into the SOURCE-MESH frame
+  (original cryo-ET coordinates) so the input mesh overlays it directly. Writes,
+  in that shared Angstrom frame:
     <prefix>_capsid_atomic.pdb    all-atom (~2.3M atoms; hybrid-36 serials,
                                   segID cols 73-76 = capsomer Hnnn/Pnnn)
     <prefix>_capsid_atomic.cif    same as mmCIF (unique chain id per subunit)
     <prefix>_capsid_backbone.pdb  N,CA,C,O only; pentamers flagged segID P* and
                                   B-factor=100 (color-by-B shows the 12 pentamers)
-    <mesh>_surface.obj            cryo-ET surface carried into the model frame
+    <mesh>_surface.obj            the source mesh (same frame; overlays the model)
   Uses the repo .venv (numpy+scipy); needs network on first run for the templates.
   The multi-hundred-MB PDB/CIF are .gitignore'd (>GitHub's 100MB limit) -- they
   regenerate deterministically from this one command.
