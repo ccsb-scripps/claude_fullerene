@@ -52,8 +52,11 @@ Example:
 
 Flags:
 - `--outdir DIR` — where to write outputs (default: current directory).
-- `--cif` — also write mmCIF.
+- `--cif` — also write full-atom mmCIF.
 - `--backbone` — also write an N,CA,C,O backbone PDB (pentamers flagged).
+- `--assembly` — **instead** of expanding all atoms, write a compact mmCIF that
+  carries only the two reference capsomers plus a `pdbx_struct_assembly` /
+  `pdbx_struct_oper_list` transformation list (see "Assembly mode" below).
 - `--templates DIR` — capsomer-template cache dir (default `capsomer_templates/`).
 
 ---
@@ -91,6 +94,27 @@ Written to `--outdir`, named from the input prefix (`<mesh>_C<N>`):
 
 Sizes: the full PDB/CIF are ~100–180 MB. They are deterministic, so treat them as
 regenerable artifacts rather than storing them.
+
+### Assembly mode (`--assembly`)
+
+- **`<mesh>_C<N>_capsid_assembly.cif`** — a **~1 MB** mmCIF that stores the capsid
+  the way large viral capsids are deposited: only **one hexamer + one pentamer**
+  as reference `atom_site` coordinates (~17 K atoms, in the canonical frame), plus
+  the transformation list that regenerates the whole shell:
+  - `_pdbx_struct_oper_list` — one operator per capsomer, `X' = matrix·X + vector`
+    (`matrix` = the capsomer's rotation `R`, `vector` = its translation `t`).
+  - `_pdbx_struct_assembly_gen` — one row per capsomer: apply that capsomer's
+    operator to the hexamer reference chains (`HA…HF`) or the pentamer reference
+    chains (`PA…PE`).
+  - `_pdbx_struct_assembly` / `_entity` / `_struct_asym` metadata.
+- No full coordinates are written in this mode. A viewer that supports assemblies
+  reconstructs the ~2 M-atom capsid on load:
+  - **Mol\*/PDBe** — offers "Assembly 1" automatically.
+  - **ChimeraX** — `open file.cif` then `sym #1 assembly 1` (or open with the
+    assembly option).
+  - **PyMOL** — `set assembly, 1` before `load file.cif`.
+- Use this when you want a small, portable file that still yields the full capsid,
+  or to hand off to a pipeline that consumes deposited-style assemblies.
 
 ---
 
