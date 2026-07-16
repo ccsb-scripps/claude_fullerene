@@ -94,15 +94,19 @@ def load_set(name, atomic=True):
 def load_all():
     return [n for n in NAMES if load_set(n)]
 
-def build_movie(fps=24, seconds=10.0, gap=280.0, resx=1280, resy=720,
+def build_movie(fps=24, sec_per_turn=10.0, gap=280.0, resx=1280, resy=720,
                 out="/Users/olson/Dev/fullerenes/series_movie", do_render=False):
-    """Scene 'series_movie': all complexes (surface+cage+atomic+curvature) arrayed
-    along X, long axes along Y, each spinning about its own long axis (Y), 'seconds'
-    per full turn. Orthographic camera along Z framing the whole row."""
+    """Scene 'series_movie': complexes arrayed along X, long axes along Y, each
+    spinning about its own long (Y) axis, sec_per_turn per turn (continuous).
+    3-turn buildup: turn 1 = surface + curvature points; turn 2 adds the fullerene
+    cage; turn 3 adds the atomic capsid. Orthographic camera along Z. Total length
+    = 3*sec_per_turn."""
     scn = bpy.data.scenes.get("series_movie") or bpy.data.scenes.new("series_movie")
     bpy.context.window.scene = scn
     for o in list(scn.collection.objects): bpy.data.objects.remove(o, do_unlink=True)
     coll = scn.collection
+    try: bpy.context.preferences.edit.keyframe_new_interpolation_type = 'LINEAR'   # constant-speed spin
+    except Exception: pass
     comps = []
     for name in NAMES:
         sg = glob.glob(f"{DIR}/{name}*_surface.obj")
@@ -116,9 +120,15 @@ def build_movie(fps=24, seconds=10.0, gap=280.0, resx=1280, resy=720,
                           rad=float(np.sqrt(Vc[:, 0] ** 2 + Vc[:, 2] ** 2).max()),
                           halfY=float(np.abs(Vc[:, 1]).max())))
     N = len(comps); spacing = 2 * max(x['rad'] for x in comps) + gap; X0 = -(N - 1) / 2.0 * spacing
-    endf = int(round(fps * seconds))
+    tf = int(round(fps * sec_per_turn)); total = 3 * tf          # frames per turn; total (3 turns)
+    cage_af, atom_af = tf + 1, 2 * tf + 1                        # cage appears at turn 2, atomic at turn 3
     def canon(P, c, R): return (np.asarray(P, float) - c) @ R.T
     def parent(o, emp): o.parent = emp; o.matrix_parent_inverse = mathutils.Matrix.Identity(4)
+    def appear(o, af):                                           # keyframe object to pop in at frame af
+        o.hide_viewport = True; o.hide_render = True
+        o.keyframe_insert("hide_viewport", frame=1); o.keyframe_insert("hide_render", frame=1)
+        o.hide_viewport = False; o.hide_render = False
+        o.keyframe_insert("hide_viewport", frame=af); o.keyframe_insert("hide_render", frame=af)
     def mkmesh(nm, Vc, F, material, emp, smooth=True, wire=False):
         me = bpy.data.meshes.new(nm); me.from_pydata([tuple(v) for v in Vc], [], [list(map(int, f)) for f in F]); me.update()
         if smooth:
@@ -130,7 +140,7 @@ def build_movie(fps=24, seconds=10.0, gap=280.0, resx=1280, resy=720,
         name, c, R = cx['name'], cx['c'], cx['R']
         emp = bpy.data.objects.new("cx_" + name, None); coll.objects.link(emp); emp.location = (X0 + i * spacing, 0, 0)
         V, F = _readobj(glob.glob(f"{DIR}/{name}*_surface.obj")[0]); mkmesh("surf_" + name, canon(V, c, R), F, _mat("MV_surf", (0.5, 0.68, 0.95, 1), alpha=0.10, blend=True), emp)
-        V, F = _readobj(glob.glob(f"{DIR}/{name}_C*_cage.obj")[0]); mkmesh("cage_" + name, canon(V, c, R), F, _mat("MV_cage", (0.85, 0.55, 0.22, 1)), emp, wire=True)
+        V, F = _readobj(glob.glob(f"{DIR}/{name}_C*_cage.obj")[0]); cg = mkmesh("cage_" + name, canon(V, c, R), F, _mat("MV_cage", (0.85, 0.55, 0.22, 1)), emp, wire=True); appear(cg, cage_af)
         V, F = _readobj(glob.glob(f"{DIR}/{name}_C*_curvature.obj")[0]); mkmesh("curv_" + name, canon(V, c, R), F, _mat("MV_curv", (0.10, 0.85, 0.20, 1), emit=0.8), emp, smooth=False)
         bb = glob.glob(f"{DIR}/{name}_C*_backbone.npz")
         if bb:
@@ -143,11 +153,9 @@ def build_movie(fps=24, seconds=10.0, gap=280.0, resx=1280, resy=720,
                     if int(ty) != tgt: continue
                     sp = cu.splines.new('POLY'); sp.points.add(L - 1)
                     sp.points.foreach_set("co", np.concatenate([seg, np.ones((L, 1), 'f4')], axis=1).ravel().tolist())
-                cu.materials.append(_mat("MV_" + cn.split("_")[0], rgba)); o = bpy.data.objects.new(cn, cu); coll.objects.link(o); parent(o, emp)
+                cu.materials.append(_mat("MV_" + cn.split("_")[0], rgba)); o = bpy.data.objects.new(cn, cu); coll.objects.link(o); parent(o, emp); appear(o, atom_af)
         emp.rotation_euler = (0, 0, 0); emp.keyframe_insert("rotation_euler", index=1, frame=1)
-        emp.rotation_euler = (0, 2 * math.pi, 0); emp.keyframe_insert("rotation_euler", index=1, frame=endf + 1)
-        for fc in emp.animation_data.action.fcurves:
-            for kp in fc.keyframe_points: kp.interpolation = 'LINEAR'
+        emp.rotation_euler = (0, 2 * math.pi * 3, 0); emp.keyframe_insert("rotation_euler", index=1, frame=total + 1)
     cam = bpy.data.cameras.new("moviecam"); cam.type = 'ORTHO'; cam.ortho_scale = N * spacing * 1.08; cam.clip_end = 40000
     co = bpy.data.objects.new("moviecam", cam); coll.objects.link(co); co.location = (0, 0, 8000); co.rotation_euler = (0, 0, 0); scn.camera = co
     sun = bpy.data.lights.new("sun", "SUN"); sun.energy = 3.5; so = bpy.data.objects.new("sun", sun); coll.objects.link(so); so.rotation_euler = (0.5, 0.2, 0)
@@ -158,11 +166,16 @@ def build_movie(fps=24, seconds=10.0, gap=280.0, resx=1280, resy=720,
     for eng in ("BLENDER_EEVEE_NEXT", "BLENDER_EEVEE"):
         try: scn.render.engine = eng; break
         except Exception: pass
+    try: scn.eevee.taa_render_samples = 16
+    except Exception: pass
     scn.render.resolution_x = resx; scn.render.resolution_y = resy; scn.render.fps = fps
-    scn.frame_start = 1; scn.frame_end = endf
-    scn.render.image_settings.file_format = 'FFMPEG'; scn.render.ffmpeg.format = 'MPEG4'; scn.render.ffmpeg.codec = 'H264'
-    scn.render.filepath = out
-    print("series_movie: %d complexes, spacing %.0f A, frames 1-%d @ %d fps (%.0fs/turn), ortho %.0f" % (N, spacing, endf, fps, seconds, cam.ortho_scale))
+    scn.frame_start = 1; scn.frame_end = total
+    try:
+        scn.render.image_settings.file_format = 'FFMPEG'; scn.render.ffmpeg.format = 'MPEG4'; scn.render.ffmpeg.codec = 'H264'; scn.render.filepath = out + ".mp4"
+    except Exception:                                       # Blender built without ffmpeg -> PNG sequence
+        os.makedirs("/tmp/series_frames", exist_ok=True)
+        scn.render.image_settings.file_format = 'PNG'; scn.render.filepath = "/tmp/series_frames/frame_"
+    print("series_movie: %d complexes, spacing %.0f A, 3 turns x %.0fs = frames 1-%d @ %d fps ; cage@f%d atomic@f%d" % (N, spacing, sec_per_turn, total, fps, cage_af, atom_af))
     if do_render: bpy.ops.render.render(animation=True)
     return N
 
