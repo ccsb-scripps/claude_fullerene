@@ -1,4 +1,4 @@
-# cryo-ET surface (original mesh frame, Angstrom)
+# cryo-ET surface aligned to the atomic capsid model frame (Angstrom)
 o surface
 v -531.0929 -71.3855 -16.4449
 v -494.2780 -93.1447 1.0280
