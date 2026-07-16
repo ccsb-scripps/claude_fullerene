@@ -21,6 +21,12 @@ expanded capsid (or the assembly) overlays them directly — no alignment needed
 Load these together with `<mesh>_surface.obj` and/or the expanded capsid; all sit
 in the same frame. (mesh4a's are in its reoriented, long-axis-Z frame to match.)
 
+**Blender:** `../blender_load_set.py` loads a mesh's surface + cage (as an edge
+lattice) + curvature markers into a scene `<name>_set`. In Blender's Scripting
+console: `exec(open('/Users/olson/Dev/fullerenes/blender_load_set.py').read())`
+(loads all 7; or call `load_set('cage_5')`). Headless: `blender --python
+blender_load_set.py -- cage_5`.
+
 ## Rebuild the full atomic model
 ```bash
 python expand_capsid.py capsid_models/<mesh>_C<N>_capsid_transforms.json \
