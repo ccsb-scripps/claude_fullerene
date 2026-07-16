@@ -39,3 +39,8 @@ capsid_models/*.log
 
 # macOS
 .DS_Store
+
+# Blender movie setups + rendered movies (large binaries; regenerate via blender_load_set.build_movie)
+*.blend
+*.blend1
+*.mp4
