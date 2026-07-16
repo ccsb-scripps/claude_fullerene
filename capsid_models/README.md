@@ -13,6 +13,14 @@ source segmentation mesh, so loading your original mesh file together with the
 expanded capsid (or the assembly) overlays them directly — no alignment needed.
 `<mesh>_surface.obj` is that mesh (a convenience copy).
 
+**Display OBJs (per mesh, co-registered):**
+- `<mesh>_C<N>_cage.obj` — the fullerene cage as a polyhedron (verts = carbons,
+  faces = the 12 pentagons + hexagons). Show it as surface or wireframe.
+- `<mesh>_C<N>_curvature.obj` — the 12 mesh curvature high points (bowl-peak /
+  pentamer sites) as small octahedral markers.
+Load these together with `<mesh>_surface.obj` and/or the expanded capsid; all sit
+in the same frame. (mesh4a's are in its reoriented, long-axis-Z frame to match.)
+
 ## Rebuild the full atomic model
 ```bash
 python expand_capsid.py capsid_models/<mesh>_C<N>_capsid_transforms.json \
